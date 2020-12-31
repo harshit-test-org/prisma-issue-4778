@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model candidates {
+  id      Int       @id @default(autoincrement())
+  name    String    @unique
+  results results[]
+}
+
+model election_totals {
+  election_id Int       @unique
+  total_votes Int
+  elections   elections @relation(fields: [election_id], references: [id])
+}
+
+model elections {
+  id              Int              @id @default(autoincrement())
+  location_id     Int
+  office_id       Int
+  year            Int
+  special         Boolean?         @default(false)
+  runoff          Boolean?         @default(false)
+  locations       locations        @relation(fields: [location_id], references: [id])
+  offices         offices          @relation(fields: [office_id], references: [id])
+  election_totals election_totals?
+  results         results[]
+
+  @@unique([year, office_id, location_id, special, runoff], name: "elections_id")
+  @@index([location_id], name: "location_id_idx")
+  @@index([office_id], name: "office_id_idx")
+  @@index([year], name: "year_idx")
+}
+
+model locations {
+  id        Int         @id @default(autoincrement())
+  state     String
+  LEVEL     String
+  district  Int?
+  fips      Int?
+  name      String?
+  elections elections[]
+
+  @@unique([state, LEVEL, district, fips], name: "location_id")
+  @@index([fips], name: "fips_idx")
+  @@index([district], name: "district_idx")
+  @@index([LEVEL], name: "level_idx")
+  @@index([state], name: "state_idx")
+}
+
+model offices {
+  id        Int         @id @default(autoincrement())
+  name      String      @unique
+  elections elections[]
+}
+
+model parties {
+  id      Int       @id @default(autoincrement())
+  name    String    @unique
+  results results[]
+
+  @@index([name], name: "name_idx")
+}
+
+model results {
+  election_id  Int
+  candidate_id Int
+  party_id     Int
+  votes        Int
+  candidates   candidates @relation(fields: [candidate_id], references: [id])
+  elections    elections  @relation(fields: [election_id], references: [id])
+  parties      parties    @relation(fields: [party_id], references: [id])
+
+  @@unique([election_id, candidate_id, party_id], name: "sqlite_autoindex_results_1")
+}
